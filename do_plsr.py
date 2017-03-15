@@ -40,13 +40,18 @@ class InputParameters(object):
         self.pt_low = self.find_extremes()
         self.pt_high = self.find_extremes(False)
         # import IPython;IPython.embed()
+        # # FIXME this takes 1m11s! (with All Genes; 2.7s w/Glioma Markers) :
         # md = []
-        # # FIXME this takes 1m11s! :
         # for item in self.molecular_data:
         #     md.append(item)
         # print(len(md))
+        # import IPython;IPython.embed()
         print(lookup_disease('brain'))
 
+    def get_samplemap(self):
+        sample_map = db['kirp_samplemap'].find_one()
+        # do mapping...
+        return sample_map
 
     def find_extremes(self, low=True):
         if low:
@@ -70,6 +75,7 @@ class InputParameters(object):
     def get_molecular_data(self):
         projection = {"id": 1, "data": 1}
         if self.geneset_list is None:
+            # FIXME parallelize this
             return db[self.molecular_collection_name].find({}, projection)
         # first naive iteration:
         return db[self.molecular_collection_name].find(\
