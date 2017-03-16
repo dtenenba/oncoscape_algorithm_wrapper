@@ -3,11 +3,14 @@ import sys
 
 import config
 from pymongo import MongoClient
-import jsonpickle
+# import jsonpickle
+
+# import numpy as np
+import pandas as pd
 
 # TODO - add connection pooling
-client = MongoClient(config.MONGO_URL)
-db = client.tcga
+CLIENT = MongoClient(config.MONGO_URL)
+db = CLIENT.tcga
 
 class InputParameters(object):
 
@@ -59,7 +62,7 @@ class InputParameters(object):
             lohi = "below"
         else:
             operator = "$gt"
-            lohi  = "above"
+            lohi = "above"
         query = {}
         for attribute in self.clinical:
             value = attribute.low if low else attribute.high
@@ -116,10 +119,21 @@ def lookup_geneset(geneset):
         return None
     return res['genes']
 
+def convert_mol_result_to_data_frame(mol_result):
+    # dict comprehension style:
+    # interm = {item['id']: pd.Series(item['data'].values(),
+    #                                 index=item['data'].keys()) for item in res}
+    # df = pd.DataFrame(interm)
+    tmp = {}
+    for item in mol_result:
+        tmp[item['id']] = pd.Series(item['data'].values(),
+                                    index=item['data'].keys())
+    return pd.DataFrame(tmp)
+
 def lookup_molecular_collection(mol_type, disease):
     lookup = db.lookup_oncoscape_datasources
     res = lookup.find({"disease": disease, "molecular.type": mol_type},
-                       projection={"molecular.collection": 1,
+                      projection={"molecular.collection": 1,
                                    "molecular.type": 1})
     for item in res:
         for mol in item['molecular']:
@@ -127,15 +141,13 @@ def lookup_molecular_collection(mol_type, disease):
                 return mol['collection']
     return None
 
-
-
-if __name__ == '__main__':
+def main():
     if len(sys.argv) == 1:
         # FIXME change geneset back to 'All Genes'
-        clinical = [Clinical("days_to_death", 24, 50),
+        clin = [Clinical("days_to_death", 24, 50),
                     Clinical("age_at_diagnosis", 45, 70)]
         input_params = InputParameters("brain", "copy number (gistic2)",
-                                       "All Genes", clinical)
+                                       "All Genes", clin)
     else:
         with open(sys.argv[1]) as f:
             input_json = json.load(f)
@@ -145,6 +157,11 @@ if __name__ == '__main__':
     # input_params = jsonpickle.decode(input_json) # creates an InputParameters instance
     input_params.do_plsr()
     # import IPython;IPython.embed()
+
+
+
+if __name__ == '__main__':
+    main()
 
     """
 {
