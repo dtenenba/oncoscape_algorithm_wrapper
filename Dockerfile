@@ -3,15 +3,14 @@
 # The sttrcancer.io domain was set up to use the IP range 172.17
 # which the docker daemon also wants to use by default.
 # In order to fix this, you have to modify the docker daemon
-# to use a different bridge IP (bip). Change the
-# daemon settings to include the following line (without leading comment):
-# "bip": "10.99.99.1/24",
-# The trailing comma is not needed if there is nothing else in the
-# config file. Then restart the docker daemon.
-# On Ubuntu, the docker config file is located in
-# /etc/docker/daemon.json
-# and you can restart the docker daemon with this command:
+# to use a different bridge IP (bip).
+
+# If you are on ubuntu, create a file called /etc/docker/daemon.json
+# and add this line (without leading comment) to it:
+# { "bip": "10.99.99.1/24" }
+# Then restart the docker daemon with the command:
 # service restart docker
+
 
 FROM ubuntu:16.04
 
