@@ -7,4 +7,4 @@ fi
 
 
 
-gunicorn -w 4 flask_app:app
+gunicorn -w 4 -b "0.0.0.0:8000" flask_app:app
