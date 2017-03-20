@@ -1,7 +1,7 @@
 import json
 import sys
+import os
 
-import config
 from pymongo import MongoClient
 # import jsonpickle
 
@@ -9,7 +9,13 @@ from pymongo import MongoClient
 import pandas as pd
 
 # TODO - add connection pooling
-CLIENT = MongoClient(config.MONGO_URL)
+MONGO_URL = os.getenv("MONGO_URL")
+if not MONGO_URL:
+    print("MONGO_URL is not defined in environment.")
+    print("See the file setup_env.sh.example for more information.")
+    print("Exiting.")
+    sys.exit(1)
+CLIENT = MongoClient(MONGO_URL)
 db = CLIENT.tcga
 
 class InputParameters(object):

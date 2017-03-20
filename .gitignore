@@ -1,3 +1,4 @@
+setup_env.sh
 config.py
 *.pyc
 __pycache__

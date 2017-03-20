@@ -1,4 +1,5 @@
 from flask import Flask
+import do_plsr
 app = Flask(__name__)
 
 @app.route('/')

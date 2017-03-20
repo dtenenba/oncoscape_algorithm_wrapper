@@ -1,0 +1,13 @@
+#!/bin/bash
+
+# How to use:
+# Copy setup_env.sh.example to setup_env.sh
+# Edit setup_env.sh to contain the actual mongo URL.
+# Source setup_env.sh script with:
+# source ./setup_env.sh
+# You now have $MONGO_URL defined in your environment
+# So you can run/test/develop this code or start the
+# Docker container.
+
+
+export MONGO_URL="CHANGE_THIS"
