@@ -147,6 +147,13 @@ def lookup_molecular_collection(mol_type, disease):
                 return mol['collection']
     return None
 
+
+def plsr_wrapper(disease, genes, samples, features,
+                 molecular_collection, clinical_collection, n_components):
+    print("hi")
+    return {'hello': 'worldd'}
+
+
 def main():
     if len(sys.argv) == 1:
         # FIXME change geneset back to 'All Genes'
@@ -163,6 +170,7 @@ def main():
     # input_params = jsonpickle.decode(input_json) # creates an InputParameters instance
     input_params.do_plsr()
     # import IPython;IPython.embed()
+
 
 
 
