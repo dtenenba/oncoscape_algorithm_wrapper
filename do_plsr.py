@@ -3,9 +3,8 @@ import sys
 import os
 
 from pymongo import MongoClient
-# import jsonpickle
+from sklearn.cross_decomposition import PLSRegression
 
-# import numpy as np
 import pandas as pd
 
 # TODO - add connection pooling
@@ -16,189 +15,163 @@ if not MONGO_URL:
     print("Exiting.")
     sys.exit(1)
 CLIENT = MongoClient(MONGO_URL)
-db = CLIENT.tcga
-
-class InputParameters(object):
-
-    clinical_collection_name = None
-    clinical_collection = None
-    clinical_data = None
-    molecular_collection_name = None
-    molecular_data = None
-    geneset_list = None
-    pt_low = None
-    pt_high = None
+db = CLIENT.tcga # pylint: disable=invalid-name
 
 
-    def __init__(self, disease, mol_type, geneset, clinical):
-        self.disease = disease
-        self.mol_type = mol_type
-        self.geneset = geneset
-        self.clinical = clinical
+def cursor_to_data_frame(cursor):
+    dfr = pd.DataFrame()
+    for item in cursor:
+        key = item['id']
+        dfr[key] = pd.Series(list(item['data'].values()),
+                             index=list(item['data'].keys()))
+    return dfr
 
-    def do_plsr(self):
-        self.clinical_collection_name = lookup_disease(self.disease)
-        self.clinical_collection = db[self.clinical_collection_name]
-        # self.clinical_data = self.clinical_collection.find()
-        if self.geneset is not "All Genes":
-            self.geneset_list = lookup_geneset(self.geneset)
-        self.molecular_collection_name = \
-            lookup_molecular_collection(self.mol_type, self.disease)
-        self.molecular_data = self.get_molecular_data()
-        # TODO handle errors here:
-        self.pt_low = self.find_extremes()
-        self.pt_high = self.find_extremes(False)
-        # import IPython;IPython.embed()
-        # # FIXME this takes 1m11s! (with All Genes; 2.7s w/Glioma Markers) :
-        # md = []
-        # for item in self.molecular_data:
-        #     md.append(item)
-        # print(len(md))
-        # import IPython;IPython.embed()
-        print(lookup_disease('brain'))
 
-    def get_samplemap(self):
-        sample_map = db['kirp_samplemap'].find_one()
-        # do mapping...
-        return sample_map
-
-    def find_extremes(self, low=True):
-        if low:
-            operator = "$lt"
-            lohi = "below"
-        else:
-            operator = "$gt"
-            lohi = "above"
+def get_data_frame(collection, query=None, projection=None):
+    if not query:
         query = {}
-        for attribute in self.clinical:
-            value = attribute.low if low else attribute.high
-            query[attribute.field] = {operator: value}
-        cursor = db[self.clinical_collection_name].find(query)
-        ret = []
-        for item in cursor:
-            ret.append(item)
-        if not ret:
-            return Error("No patients {} threshold".format(lohi))
-        return ret
-
-    def get_molecular_data(self):
-        projection = {"id": 1, "data": 1}
-        if self.geneset_list is None:
-            # FIXME parallelize this
-            return db[self.molecular_collection_name].find({}, projection)
-        # first naive iteration:
-        return db[self.molecular_collection_name].find(\
-            {'id': {'$in': self.geneset_list}}, projection)
-        # TODO - use something like this:
-        # http://stackoverflow.com/a/38011531/470769
-
-
-class Clinical(object):
-
-    def __init__(self, field, low, high):
-        self.field = field
-        self.low = low
-        self.high = high
-
-
-class Error(object):
-
-    def __init__(self, message):
-        ret = json.dumps(dict(scores=None, reason=message))
-        print(ret)
+    if not projection:
+        projection = {}
+    cursor = db[collection].find(query, None)
+    dfr = cursor_to_data_frame(cursor)
+    dfr.sort_index(inplace=True)
+    return dfr
 
 
 
-def lookup_disease(disease):
-    lookup = db.lookup_oncoscape_datasources
-    res = lookup.find_one({"disease": disease},
-                          projection={"clinical.patient" : 1})
-    if res is None:
+def get_projection(items):
+    if not items:
         return None
-    return res['clinical']['patient']
+    ret = {}
+    for item in items:
+        ret[item] = 1
+    return ret
 
-def lookup_geneset(geneset):
-    lookup = db.lookup_genesets
-    res = lookup.find_one({"name": geneset},
-                          projection={"genes": 1})
-    if res is None:
-        return None
-    return res['genes']
+def clin_coll_to_df(clinical_collection, disease, # pylint: disable=too-many-locals
+                    features, samples):
+    mapcol = "{}_samplemap".format(disease)
+    sample_pt_map = db[mapcol].find_one()
+    if samples:
+        wanted_pts = [sample_pt_map[x] for x in samples]
+        query = {"patient_ID": {"$in": wanted_pts}}
+    else:
+        query = {}
 
-def convert_mol_result_to_data_frame(mol_result):
-    # dict comprehension style:
-    # interm = {item['id']: pd.Series(item['data'].values(),
-    #                                 index=item['data'].keys()) for item in res}
-    # df = pd.DataFrame(interm)
-    tmp = {}
-    for item in mol_result:
-        tmp[item['id']] = pd.Series(item['data'].values(),
-                                    index=item['data'].keys())
-    return pd.DataFrame(tmp)
+    projection = get_projection(features + ["patient_ID"])
+    cursor = db[clinical_collection].find(query, projection)
+    pt_sample_map = {v: k for k, v in sample_pt_map.items()}
 
-def lookup_molecular_collection(mol_type, disease):
-    lookup = db.lookup_oncoscape_datasources
-    res = lookup.find({"disease": disease, "molecular.type": mol_type},
-                      projection={"molecular.collection": 1,
-                                   "molecular.type": 1})
-    for item in res:
-        for mol in item['molecular']:
-            if mol['type'] == mol_type:
-                return mol['collection']
-    return None
+    dfr = pd.DataFrame()
+    for item in cursor:
+        key = pt_sample_map[item['patient_ID']]
+        rowhash = {}
+        for feature in features:
+            rowhash[feature] = item[feature]
+        row = pd.DataFrame(rowhash, index=[key])
+        # the following is bad in R but maybe ok in python?
+        # we should check performance/mem usage....
+        dfr = dfr.append(row) # pylint: disable=redefined-variable-type
+    dfr.sort_index(inplace=True)
+    return dfr
+
+
+def display_result(result, data_frame, is_score=True):
+    """
+    If we call this from inside plsr_wrapper as follows:
+
+    display_result(pls2.x_scores_, mol_df)
+
+    Then we want to output something like that looks like this when
+    converted to JSON:
+
+      "x_scores":[
+          {
+             "id":"TCGA-E1-5319-01",
+             "value":[
+                -3.1,
+                1.5
+             ]
+          },
+          {
+             "id":"TCGA-HT-7693-01",
+             "value":[
+                0.8,
+                0.5
+             ]
+          }
+       ]
+
+
+    """
+    # do we handle metadata/coef_ here?
+    pass # FIXME implement
 
 
 def plsr_wrapper(disease, genes, samples, features,
                  molecular_collection, clinical_collection, n_components):
-    print("hi")
-    return {'hello': 'worldd'}
 
+    mol_df = get_data_frame(molecular_collection,
+                            {"id": {"$in": genes}})
+    if samples: # subset by samples
+        subset = [x for x in mol_df.index if x in samples]
+        mol_df = mol_df.loc[subset]
+    mol_df.sort_index(inplace=True)
+
+    clin_df = clin_coll_to_df(clinical_collection, disease,
+                              features, samples)
+
+    # subset clin_df by rows of mol_df
+    subset = list(mol_df.index)
+    clin_df = clin_df.loc[subset]
+
+    pls2 = PLSRegression(n_components=n_components)
+
+    error = None
+    if mol_df.isnull().values.any():
+        error = "null values in molecular data"
+    if clin_df.isnull().values.any():
+        error = "null values in clinical data"
+
+    if not error:
+        pls2.fit(mol_df, clin_df)
+
+    # FIXME handle other causes of errors
+    # FIXME should numbers be returned with a certain precision?
+
+    ret_obj = {"disease": disease,
+               "dataType": "PLSR",
+               "score": "sample",
+               "x_loading": "hugo",
+               "y_loading": "feature",
+               "default": False,
+               "x_scores": None,
+               "y_scores": None,
+               "x.loadings": None,
+               "y.loadings": None,
+               "metadata": None
+              }
+    if error:
+        ret_obj['reason'] = error
+    else:
+        # FIXME clarify how scores & loadings should be displayed
+        ret2 = {"x_scores": pls2.x_scores_.tolist(),
+                "y_scores": pls2.y_scores_.tolist(),
+                "x.loadings": pls2.x_loadings_.tolist(),
+                "y.loadings": pls2.y_loadings_.tolist(),
+                # FIXME how should metadata look in returned JSON?
+                # Not defined in pseudocode...
+                "metadata": pls2.coef_.tolist()}
+        ret_obj.update(ret2)
+
+
+    # import IPython;IPython.embed()
+    return ret_obj
 
 def main():
-    if len(sys.argv) == 1:
-        # FIXME change geneset back to 'All Genes'
-        clin = [Clinical("days_to_death", 24, 50),
-                    Clinical("age_at_diagnosis", 45, 70)]
-        input_params = InputParameters("brain", "copy number (gistic2)",
-                                       "All Genes", clin)
-    else:
-        with open(sys.argv[1]) as f:
-            input_json = json.load(f)
-        # TODO deserialize InputParameters object from json file
-        # input_params = jsonpickle.decode(input_json)
-    # input_json = '{"disease": "brain", "geneset": "All Genes", "clinical": [{"field": "days_to_death", "py/object": "__main__.Clinical", "high": 50, "low": 15}, {"field": "age_at_diagnosis", "py/object": "__main__.Clinical", "high": 90, "low": 45}], "py/object": "__main__.InputParameters", "molecular_collection_name": null, "clinical_collection_name": null, "mol_type": "copy number (gistic2)"}'
-    # input_params = jsonpickle.decode(input_json) # creates an InputParameters instance
-    input_params.do_plsr()
-    # import IPython;IPython.embed()
-
-
+    with open("sample_input2.json") as jsonfile:
+        input_data = json.load(jsonfile)
+    plsr_wrapper(**input_data) # ignoring return value...
 
 
 if __name__ == '__main__':
     main()
-
-    """
-{
-   disease: "brain",
-   clinical : [
-        { field: "days_to_death"
-            thresholds: [15, 50]
-        },
-        { field: "age_at_diagnosis"
-            thresholds: [45, 90]
-        }
-   ],
-   geneset: "All Genes",
-   mol_type :"gene expression (AffyU133a)"
-
-   Actually mol_type should maybe be:
-
-   copy number (gistic2)
-}
-
-In brain_dashboard, without any gene constraints (geneset == 'All Genes'),
-the max days_to_death is null (!) (lowest non-null value is 3) and the max days_to_death is 4445.
-The min age_at_diagnosis is 10 and the max age_at_diagnosis is 89.
-TODO: Let Lisa know that there are records with null days_to_death values.
-as of 3/14/2017.
-    """
