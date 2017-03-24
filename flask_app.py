@@ -1,7 +1,7 @@
 """
 To start this app during local development, run the following:
 
-MONGO_URL=mongodb://localhost:27017 FLASK_APP=flask_app.py FLASK_DEBUG=1 flask run
+MONGO_URL=mongodb://localhost:27017 FLASK_APP=flask_app.py FLASK_DEBUG=1 flask run -p 8000
 
 To call the app with some sample data, run this (from another
 window in this same directory):
@@ -38,4 +38,4 @@ class DoPLSR(Resource):
 api.add_resource(DoPLSR, '/')
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, port=8000)
