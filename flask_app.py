@@ -1,7 +1,7 @@
 """
 To start this app during local development, run the following:
 
-MONGO_URL=mongodb://localhost:27017 FLASK_APP=flask_app.py FLASK_DEBUG=1 flask run -p 8000
+FLASK_APP=flask_app.py FLASK_DEBUG=1 flask run -p 8000
 
 To call the app with some sample data, run this (from another
 window in this same directory):
@@ -11,6 +11,8 @@ curl -vX POST http://localhost:8000 -d @sample_input2.json  --header "Content-Ty
 To run this app in a 'production' context, run:
 
 ./run.sh
+
+To run it inside a Docker container, see the README.
 
 """
 

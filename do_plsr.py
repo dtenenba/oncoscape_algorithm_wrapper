@@ -1,11 +1,13 @@
 import json
 import sys
 import os
+import warnings
 
 from pymongo import MongoClient
 from sklearn.cross_decomposition import PLSRegression
 
 import pandas as pd
+import numpy as np
 
 # TODO - add connection pooling
 MONGO_URL = os.getenv("MONGO_URL")
@@ -75,7 +77,7 @@ def clin_coll_to_df(clinical_collection, disease, # pylint: disable=too-many-loc
     return dfr
 
 
-def display_result(result, data_frame, is_score=True):
+def display_result(inputdata, data_frame, row_wise=True):
     """
     If we call this from inside plsr_wrapper as follows:
 
@@ -103,8 +105,16 @@ def display_result(result, data_frame, is_score=True):
 
 
     """
-    # do we handle metadata/coef_ here?
-    pass # FIXME implement
+    if row_wise:
+        labels = data_frame.index.tolist()
+    else:
+        labels = data_frame.columns.tolist()
+    output = []
+    assert len(labels) == len(inputdata)
+    for idx, item in enumerate(inputdata):
+        hsh = {"id": labels[idx], "value": item}
+        output.append(hsh)
+    return output
 
 
 def plsr_wrapper(disease, genes, samples, features,
@@ -126,14 +136,37 @@ def plsr_wrapper(disease, genes, samples, features,
 
     pls2 = PLSRegression(n_components=n_components)
 
-    error = None
-    if mol_df.isnull().values.any():
-        error = "null values in molecular data"
-    if clin_df.isnull().values.any():
-        error = "null values in clinical data"
+    # does clin_df have any NAs in it? If so, remove those rows:
+    rows_to_drop =  clin_df[clin_df.isnull().any(axis=1)].index.tolist()
+    clin_df.dropna(inplace=True) # just drop them in one go from clin_df
 
-    if not error:
-        pls2.fit(mol_df, clin_df)
+
+    # Then remove the corresponding rows from mol_df:
+    mol_df.drop(rows_to_drop, inplace=True)
+
+    # Will mol_df ever have NAs in it? TODO find out...
+
+    error = None
+    warning = []
+    # TODO Handle errors here...
+    # make sure that we still have rows in the data frames!
+    if not len(mol_df.index):
+        error = "No non-NA rows in input"
+
+
+    def custom_warn_function(message, *args): # pylint: disable=unused-argument
+        """Catch warnings thrown by pls2.fit()"""
+        warning.append(str(message))
+        print("We got a warning! {}".format(message))
+
+    old_showwarning = warnings.showwarning
+    warnings.showwarning = custom_warn_function
+    pls2.fit(mol_df, clin_df)
+    warnings.showwarning = old_showwarning
+
+    if np.all(np.isnan(pls2.x_scores_)): # all x_scores_ values are NAN
+        error = "results are NaN; too few rows in input?"
+
 
     # FIXME handle other causes of errors
     # FIXME should numbers be returned with a certain precision?
@@ -154,21 +187,28 @@ def plsr_wrapper(disease, genes, samples, features,
         ret_obj['reason'] = error
     else:
         # FIXME clarify how scores & loadings should be displayed
-        ret2 = {"x_scores": pls2.x_scores_.tolist(),
-                "y_scores": pls2.y_scores_.tolist(),
-                "x.loadings": pls2.x_loadings_.tolist(),
-                "y.loadings": pls2.y_loadings_.tolist(),
-                # FIXME how should metadata look in returned JSON?
-                # Not defined in pseudocode...
-                "metadata": pls2.coef_.tolist()}
+        ret2 = {"x_scores": display_result(pls2.x_scores_.tolist(), mol_df),
+                "y_scores": display_result(pls2.y_scores_.tolist(), clin_df),
+                "x.loadings": display_result(pls2.x_loadings_.tolist(), mol_df,
+                                             False),
+                "y.loadings": display_result(pls2.y_loadings_.tolist(), clin_df,
+                                             False),
+                # not 100% sure about this:
+                "metadata": display_result(pls2.coef_.tolist(), mol_df, False)}
         ret_obj.update(ret2)
+        if warning:
+            ret_obj['warning'] = warning
 
-
-    # import IPython;IPython.embed()
+    if os.getenv("PLSR_DEBUG"):
+        import IPython;IPython.embed()
     return ret_obj
 
 def main():
-    with open("sample_input2.json") as jsonfile:
+    if len(sys.argv) > 1:
+        json_filename = sys.argv[1]
+    else:
+        json_filename = "sample_input2.json"
+    with open(json_filename) as jsonfile:
         input_data = json.load(jsonfile)
     plsr_wrapper(**input_data) # ignoring return value...
 
