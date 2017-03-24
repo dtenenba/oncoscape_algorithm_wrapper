@@ -6,7 +6,7 @@ MONGO_URL=mongodb://localhost:27017 FLASK_APP=flask_app.py FLASK_DEBUG=1 flask r
 To call the app with some sample data, run this (from another
 window in this same directory):
 
-curl -vX POST http://localhost:5000 -d @sample_input2.json  --header "Content-Type: application/json"
+curl -vX POST http://localhost:8000 -d @sample_input2.json  --header "Content-Type: application/json"
 
 To run this app in a 'production' context, run:
 
