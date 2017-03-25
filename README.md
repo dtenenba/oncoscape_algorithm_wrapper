@@ -121,7 +121,6 @@ time curl -vX POST http://localhost:8000 -d @sample_input2.json
 
 ## Remaining Work
 
-* Output format is not yet quite correct
 * Add unit tests
 * Add continuous integration
 * More error handling
