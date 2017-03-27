@@ -119,7 +119,7 @@ the elapsed time used:
 time curl -vX POST http://localhost:8000 -d @sample_input2.json
 ```
 
-### Was my run successful?
+## Was my run successful?
 
 If your run was NOT successful there will be a `reason` key
 in the JSON output by the microservice, and the value of
