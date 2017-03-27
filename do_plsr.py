@@ -68,6 +68,9 @@ def clin_coll_to_df(clinical_collection, disease, # pylint: disable=too-many-loc
         key = pt_sample_map[item['patient_ID']]
         rowhash = {}
         for feature in features:
+            if not feature in item:
+                print("Warning: feature {} not present in record, skipping".format(feature))
+                break
             rowhash[feature] = item[feature]
         row = pd.DataFrame(rowhash, index=[key])
         # the following is bad in R but maybe ok in python?
@@ -151,8 +154,9 @@ def plsr_wrapper(disease, genes, samples, features,
     # TODO Handle errors here...
     # make sure that we still have rows in the data frames!
     if not len(mol_df.index):
-        error = "No non-NA rows in input"
-
+        error = "No non-NA rows in molecular input"
+    if not len(clin_df.index):
+        error = "No non-NA rows in clinical input"
 
     def custom_warn_function(message, *args): # pylint: disable=unused-argument
         """Catch warnings thrown by pls2.fit()"""
@@ -161,10 +165,17 @@ def plsr_wrapper(disease, genes, samples, features,
 
     old_showwarning = warnings.showwarning
     warnings.showwarning = custom_warn_function
-    pls2.fit(mol_df, clin_df)
+    if error:
+        print("There's an error, skipping pls2.fit()...")
+    else:
+        try:
+            pls2.fit(mol_df, clin_df)
+        except Exception as exc: # pylint: disable=broad-except
+            error = str(exc)
+
     warnings.showwarning = old_showwarning
 
-    if np.all(np.isnan(pls2.x_scores_)): # all x_scores_ values are NAN
+    if not error and np.all(np.isnan(pls2.x_scores_)): # all x_scores_ values are NAN
         error = "results are NaN; too few rows in input?"
 
 

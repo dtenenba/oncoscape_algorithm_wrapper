@@ -119,6 +119,74 @@ the elapsed time used:
 time curl -vX POST http://localhost:8000 -d @sample_input2.json
 ```
 
+### Was my run successful?
+
+If your run was NOT successful there will be a `reason` key
+in the JSON output by the microservice, and the value of
+that key will give some clue as to the error that occurred.
+So clients should check to see if the `reason` key exists
+before doing anything else.
+
+You should also check the `warning` key. If it exists,
+it will be a `list` of warnings produced by the PLSR
+algorithm which may indicate a problem.
+
+
+## Smoke Testing
+
+`smoker.py` is a program that generates input to the PLSR wrapper
+and then runs the wrapper with that input and tells you the result
+(success or failure; warnings) and the time it took to run.
+
+If no parameters are specified, the input generated is totally random,
+but you can specify all aspects of the input, or just some of them.
+You can also constrain it by saying how many genes you want in the input
+(rather than specifying the actual genes).
+
+This program requires a local instance of MongoDB (`mongod`) to be
+running, because it saves the input objects it generates, in case you
+want to re-run one of them for further debugging.
+
+Run with no arguments (`python smoker.py`), the script
+will generate 10 random sets
+of input data and call the PLSR wrapper 10 times with that data,
+reporting the result and time it took to run.
+For each input data set, you'll see something like this:
+
+```
+iteration 1:
+disease is: paad
+disease: paad, features: ['age_at_diagnosis', 'days_to_last_follow_up'], genes=(19), samples=(185), n_components=3
+Saved with ObjectID: 58d96d580f45e77ae6c25738
+Running PLSR...
+'doit' ('', {}) 0.40 sec
+errors: none, warnings? none
+```
+
+This tells us a bit about the input data set that was generated (disease,
+features, number of genes and samples, and dimensions (n_components)).
+In this case there was one row dropped from the samples because
+the patient ID could not be mapped to a sample ID.
+Also in this case, PLSR ran without errors or warnings in 0.4 seconds.
+
+The generated input data sets are stored in a MongoDB database called `smokes`
+in a collection also called `smokes`. If you want to re-run the last
+data set, its ObjectID should be on the screen, but if you don't see it,
+just find the ObjectID of the document with the most recent
+timestamp (by pasting the following into RoboMongo or a `mongo smokes` shell ):
+
+```javascript
+db.getCollection('smokes').find({}, {_id: 1}).sort({"timestamp": -1}).limit(1).next()
+```
+
+
+
+Then add that ID to the script command to run just that data set, for example:
+
+    python smoker.py 58d96d580f45e77ae6c25738
+
+
+
 ## Remaining Work
 
 * Add unit tests

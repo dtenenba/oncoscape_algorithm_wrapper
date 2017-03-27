@@ -33,8 +33,6 @@ class DoPLSR(Resource):
         json_data = request.get_json(force=True)
         result = do_plsr.plsr_wrapper(**json_data)
 
-        # import IPython;IPython.embed()
-
         return jsonify(result)
 
 api.add_resource(DoPLSR, '/')

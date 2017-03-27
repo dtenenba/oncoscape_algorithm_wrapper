@@ -1,6 +1,13 @@
 """return a (semi-)random input dataset"""
 import random
+import datetime
+import sys
+import pymongo
+from bson.objectid import ObjectId
+
+from timing import timeit
 import do_plsr
+
 
 db = do_plsr.db
 
@@ -38,13 +45,19 @@ def smoker(disease=None, mol_type=None, genes=None, samples=None,
 
     samplemaps = [x for x in collections if x.endswith("_samplemap")]
 
+    dashboards = [x for x in collections if x.endswith("_dashboard")]
+
+    dash_diseases = [x.split("_")[0] for x in dashboards]
+
     diseases = [x.split("_")[0] for x in samplemaps]
 
+    pruned_diseases = list(set(dash_diseases).intersection(set(diseases)))
 
     if not disease:
-        disease = random.choice(diseases)
+        disease = random.choice(pruned_diseases)
     lookup = db['lookup_oncoscape_datasources'].find_one({"disease":
                                                            disease})
+    print("disease is: {}".format(disease))
     # get clinical collection by looking in
     # lookup_oncoscape_datasources.clinical.patient
     clinical_collection = lookup['clinical']['patient']
@@ -83,7 +96,13 @@ def smoker(disease=None, mol_type=None, genes=None, samples=None,
         samples = [x['patient_ID'] for x in samples]
         mapper = db["{}_samplemap".format(disease)].find_one()
         reverse = {v: k for k, v in mapper.items()}
-        samples = [reverse[x] for x in samples]
+        tmp = []
+        for x in samples:
+            if not x in reverse:
+                print("warning: {} does not occur in mapping table, dropping sample".format(x))
+                continue
+            tmp.append(reverse[x])
+        samples = tmp
 
     # TODO does there have to be more than 1 feature?
     # TODO does there have to be only 2?
@@ -98,7 +117,7 @@ def smoker(disease=None, mol_type=None, genes=None, samples=None,
                          'days_to_last_follow_up']
     num_features = None
     if features is None:
-        num_features = random.randint(1,3)
+        num_features = 2#random.randint(1,3)
     elif isinstance(features, int):
         num_features = features
     if num_features:
@@ -114,3 +133,53 @@ def smoker(disease=None, mol_type=None, genes=None, samples=None,
                n_components=n_components)
     # fill in fields of ret...
     return ret
+
+def summary(obj):
+    sumstr = "disease: {}, features: {}, genes=({}), " + \
+         "samples=({}), n_components={}"
+    return sumstr.format(
+          obj['disease'], obj['features'], len(obj['genes']),
+          len(obj['samples']), obj['n_components'])
+
+def success(obj):
+    error = obj['reason'] if 'reason' in obj else "none"
+    warning = obj['warning'] if 'warning' in obj else "none"
+    return "errors: {}, warnings? {}".format(error, warning)
+
+
+
+@timeit
+def doit(obj):
+    return do_plsr.plsr_wrapper(**obj)
+
+def main():
+    client = pymongo.MongoClient()
+    localdb = client.smokes
+    smokes = localdb.smokes
+    if len(sys.argv) > 1:
+        objid = sys.argv[1]
+        outer = smokes.find_one({"_id": ObjectId(objid)})
+        obj = outer['smoke']
+        print("running saved instance from db.....")
+        print(summary(obj))
+        print("Running PLSR...")
+        result = doit(obj)
+        print(success(result))
+        print()
+        return
+
+    for i in range(10):
+        print("iteration {}:".format(i))
+        obj = smoker()
+        doc = dict(timestamp=datetime.datetime.now(), smoke=obj)
+        obj_id = smokes.insert_one(doc).inserted_id
+
+        print(summary(obj))
+        print("Saved with ObjectID: {}".format(obj_id))
+        print("Running PLSR...")
+        result = doit(obj)
+        print(success(result))
+        print()
+
+if __name__ == '__main__':
+    main()
