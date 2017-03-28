@@ -140,14 +140,30 @@ def plsr_wrapper(disease, genes, samples, features,
     pls2 = PLSRegression(n_components=n_components)
 
     # does clin_df have any NAs in it? If so, remove those rows:
-    rows_to_drop =  clin_df[clin_df.isnull().any(axis=1)].index.tolist()
+    clin_rows_to_drop =  clin_df[clin_df.isnull().any(axis=1)].index.tolist()
     clin_df.dropna(inplace=True) # just drop them in one go from clin_df
 
+    # same for mol_df
+    mol_rows_to_drop = mol_df[mol_df.isnull().any(axis=1)].index.tolist()
+    mol_df.dropna(inplace=True)
 
-    # Then remove the corresponding rows from mol_df:
-    mol_df.drop(rows_to_drop, inplace=True)
+    # Now we need to make sure that the rows we dropped above are dropped
+    # from the corresponding data frame as well.
 
-    # Will mol_df ever have NAs in it? TODO find out...
+    # NOTE - this way of dropping rows could remove valid rows
+    # if there is more than one row with the same name as a result
+    # of mapping from pt to sample names.
+
+    # from clin_df:
+    #  drop all rows from mol_rows_to_drop that are in clin_df.index
+    clin_df.drop(list(set(clin_df.index).intersection(set(mol_rows_to_drop))),
+                 inplace=True)
+
+    # from mol_df:
+    # drop all rows from clin_rows_to_drop that are in mol_df.index
+    mol_df.drop(list(set(mol_df.index).intersection(set(clin_rows_to_drop))),
+                inplace=True)
+
 
     error = None
     warning = []
@@ -175,7 +191,7 @@ def plsr_wrapper(disease, genes, samples, features,
 
     warnings.showwarning = old_showwarning
 
-    if not error and np.all(np.isnan(pls2.x_scores_)): # all x_scores_ values are NAN
+    if not error and np.all(np.isnan(pls2.x_scores_)): # all x_scores_ values are NaN
         error = "results are NaN; too few rows in input?"
 
 
@@ -197,7 +213,6 @@ def plsr_wrapper(disease, genes, samples, features,
     if error:
         ret_obj['reason'] = error
     else:
-        # FIXME clarify how scores & loadings should be displayed
         ret2 = {"x_scores": display_result(pls2.x_scores_.tolist(), mol_df),
                 "y_scores": display_result(pls2.y_scores_.tolist(), clin_df),
                 "x.loadings": display_result(pls2.x_loadings_.tolist(), mol_df,
