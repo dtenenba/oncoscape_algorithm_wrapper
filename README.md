@@ -165,8 +165,6 @@ errors: none, warnings? none
 
 This tells us a bit about the input data set that was generated (disease,
 features, number of genes and samples, and dimensions (n_components)).
-In this case there was one row dropped from the samples because
-the patient ID could not be mapped to a sample ID.
 Also in this case, PLSR ran without errors or warnings in 0.4 seconds.
 
 The generated input data sets are stored in a MongoDB database called `smokes`
