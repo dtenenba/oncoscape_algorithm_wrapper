@@ -38,4 +38,4 @@ class DoPLSR(Resource):
 api.add_resource(DoPLSR, '/')
 
 if __name__ == '__main__':
-    app.run(debug=True, port=8000)
+    app.run(port=8000)
