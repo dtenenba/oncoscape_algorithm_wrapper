@@ -16,7 +16,9 @@ To run it inside a Docker container, see the README.
 
 """
 
-from flask import Flask, jsonify, request
+import json
+
+from flask import Flask, jsonify, request, Response
 from flask_restful import Resource, Api
 
 import do_plsr
@@ -31,6 +33,15 @@ class DoPLSR(Resource):
         # Content-Type: application/json
         # header must be present in the request.
         json_data = request.get_json(force=True)
+        expected_keys = ['disease', 'genes', 'samples', 'features',
+                         'molecular_collection', 'clinical_collection',
+                         'n_components']
+        if not sorted(json_data.keys()) == sorted(expected_keys):
+            error = "missing key(s): input must contain all of: {}"
+            jstr = json.dumps(dict(reason=error.format(expected_keys)))
+            resp = Response(jstr,
+                            status=400, mimetype='application/json')
+            return resp
         result = do_plsr.plsr_wrapper(**json_data)
 
         return jsonify(result)
