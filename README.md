@@ -2,7 +2,7 @@
 
 This is a web application which takes a JSON object as input
 ([example here](https://github.com/dtenenba/oncoscape_plsr/blob/master/sample_input2.json))
-and produces a JSON output file
+and produces JSON output
 ([example here](https://github.com/dtenenba/oncoscape_plsr/blob/master/sample_output2.json)) containing the result of a
 [PLSR](https://en.wikipedia.org/wiki/Partial_least_squares_regression) calculation.
 
