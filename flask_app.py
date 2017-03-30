@@ -6,7 +6,7 @@ FLASK_APP=flask_app.py FLASK_DEBUG=1 flask run -p 8000
 To call the app with some sample data, run this (from another
 window in this same directory):
 
-curl -vX POST http://localhost:8000 -d @sample_input2.json  --header "Content-Type: application/json"
+curl -vX POST http://localhost:8000/plsr -d @sample_input2.json  --header "Content-Type: application/json"
 
 To run this app in a 'production' context, run:
 
@@ -35,7 +35,7 @@ class DoPLSR(Resource):
 
         return jsonify(result)
 
-api.add_resource(DoPLSR, '/')
+api.add_resource(DoPLSR, '/plsr')
 
 if __name__ == '__main__':
     app.run(port=8000)

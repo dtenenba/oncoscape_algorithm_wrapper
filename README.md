@@ -110,13 +110,13 @@ You can see build reports
 ## Calling the service
 
 The three methods above all start the service at
-[http://localhost:8000](http://localhost:8000).
+[http://localhost:8000/plsr](http://localhost:8000/plsr).
 
 This command will call the service with some JSON input and display
 the elapsed time used:
 
 ```bash
-time curl -vX POST http://localhost:8000 -d @sample_input2.json
+time curl -vX POST http://localhost:8000/plsr -d @sample_input2.json
 ```
 
 ## Was my run successful?
