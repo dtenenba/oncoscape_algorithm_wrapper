@@ -22,6 +22,10 @@ RUN apt-get update -y
 
 RUN apt-get install -y python3 python3-dev python3-pip git
 
+RUN pip uninstall -y falcon || true
+
+RUN pip install --no-binary :all: falcon # build falcon with cython (it's faster)
+
 RUN git clone https://github.com/dtenenba/oncoscape_plsr.git
 
 WORKDIR oncoscape_plsr
