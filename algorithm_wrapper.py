@@ -90,7 +90,7 @@ class AbstractAlgorithmWrapper(object): # pylint: disable=too-many-instance-attr
         # make sure that we still have rows in the data frames!
         if not len(self.mol_df.index):
             self.error = "No non-NA rows in molecular input"
-        if not len(self.clin_df.index):
+        if self.clinical_collection and not len(self.clin_df.index):
             self.error = "No non-NA rows in clinical input"
 
 
@@ -99,6 +99,11 @@ class AbstractAlgorithmWrapper(object): # pylint: disable=too-many-instance-attr
         self.warning.append(str(message))
         print("We got a warning! {}".format(message))
 
+    @classmethod
+    @abstractmethod
+    def get_input_parameters(cls):
+        """Subclasses override this to indicate input parameters."""
+        pass
 
     @abstractmethod
     def run_algorithm(self):
@@ -109,7 +114,8 @@ class AbstractAlgorithmWrapper(object): # pylint: disable=too-many-instance-attr
         """
         pass
 
-    def cursor_to_data_frame(self, cursor):
+    def cursor_to_data_frame(self, cursor): # pylint: disable=no-self-use
+        """Iterate through a Mongo cursor & put result in pandas DataFrame"""
         dfr = pd.DataFrame()
         for item in cursor:
             key = item['id']
@@ -119,6 +125,7 @@ class AbstractAlgorithmWrapper(object): # pylint: disable=too-many-instance-attr
 
 
     def get_data_frame(self, collection, query=None, projection=None):
+        """Return a data frame given a mongo collection, query, & projection"""
         if not query:
             query = {}
         if not projection:
@@ -129,7 +136,8 @@ class AbstractAlgorithmWrapper(object): # pylint: disable=too-many-instance-attr
         return dfr
 
 
-    def get_projection(self, items):
+    def get_projection(self, items): # pylint: disable=no-self-use
+        """Given a list, make a hash suitable for a mongo projection"""
         if not items:
             return None
         ret = {}
@@ -137,7 +145,7 @@ class AbstractAlgorithmWrapper(object): # pylint: disable=too-many-instance-attr
             ret[item] = 1
         return ret
 
-    def display_result(self, inputdata, data_frame, row_wise=True):
+    def display_result(self, inputdata, data_frame, row_wise=True): # pylint: disable=no-self-use
         """
         If we call this from inside plsr_wrapper as follows:
 
@@ -179,6 +187,7 @@ class AbstractAlgorithmWrapper(object): # pylint: disable=too-many-instance-attr
 
     def clin_coll_to_df(self, clinical_collection, disease, # pylint: disable=too-many-locals
                         features, samples):
+        """Convert clinical collection to a pandas DataFrame"""
         mapcol = "{}_samplemap".format(disease)
         sample_pt_map = self.db[mapcol].find_one()
         if samples:

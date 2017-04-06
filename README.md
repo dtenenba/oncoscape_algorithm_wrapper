@@ -1,10 +1,16 @@
-# PLSR Microservice for Oncoscape
+# Algorithm Wrapper Microservice for Oncoscape
 
-This is a web application which takes a JSON object as input
-([example here](https://github.com/dtenenba/oncoscape_plsr/blob/master/sample_input2.json))
-and produces JSON output
-([example here](https://github.com/dtenenba/oncoscape_plsr/blob/master/sample_output2.json)) containing the result of a
-[PLSR](https://en.wikipedia.org/wiki/Partial_least_squares_regression) calculation.
+This is a web application that takes a JSON object as input, runs an
+algorithm on the input, and returns JSON output.
+
+Here are the currently supported algorithms, their endpoints, and example input
+and output JSON.
+
+Algorithm | Endpoint | Input Example | Output example
+--- | --- | --- | ---
+[PLSR](https://en.wikipedia.org/wiki/Partial_least_squares_regression) | `/plsr` | [sample_input2.json](sample_input2.json) | [sample_output2.json](sample_output2.json)
+[PCA](https://en.wikipedia.org/wiki/Principal_component_analysis) | `/pca` | [pca_input.json](pca_input.json) | [pca_output.json](pca_output.json)
+
 
 This application requires Python 3.
 
@@ -82,7 +88,7 @@ can be made configurable via an environment variable in the future.
 Make sure MONGO_URL is set in your environment as above, and
 Docker is installed.
 
-See the [comments](https://github.com/dtenenba/oncoscape_plsr/blob/master/Dockerfile#L1)
+See the [comments](Dockerfile#L1)
 at the top of the `Dockerfile` for important information about
 how to configure your Docker daemon.
 
@@ -103,21 +109,38 @@ and drop you at a bash prompt in that directory.
 
 Note that the Docker container used, `dtenenba/oncoscape_plsr`,
 is rebuilt every time there is a push to
-[this GitHub repository](https://github.com/dtenenba/oncoscape_plsr).
+[this GitHub repository](.).
 You can see build reports
-[here](https://hub.docker.com/r/dtenenba/oncoscape_plsr/builds/).
+[here](https://hub.docker.com/r/dtenenba/oncoscape_plsr/builds/). <!-- FIXME update this -->
 
 ## Calling the service
 
 The three methods above all start the service at
-[http://localhost:8000/plsr](http://localhost:8000/plsr).
+[http://localhost:8000/](http://localhost:8000/).
 
-This command will call the service with some JSON input and display
+### `PLSR` example
+
+This command will call the PLSR endpoint with some JSON input and display
 the elapsed time used:
 
 ```bash
 time curl -vX POST http://localhost:8000/plsr -d @sample_input2.json
 ```
+
+### `PCA` example
+
+
+This command will call the PCA endpoint with some JSON input and display
+the elapsed time used:
+
+```bash
+time curl -vX POST http://localhost:8000/pca -d @pca_input.json
+```
+
+*Note*: You need to be in the same directory as this `README` in order for `curl` to find the
+JSON input files used in these examples.
+
+
 
 ## Was my run successful?
 
@@ -137,6 +160,8 @@ algorithm which may indicate a problem.
 `smoker.py` is a program that generates input to the PLSR wrapper
 and then runs the wrapper with that input and tells you the result
 (success or failure; warnings) and the time it took to run.
+
+**TODO**: Make this program support PCA as well.
 
 If no parameters are specified, the input generated is totally random,
 but you can specify all aspects of the input, or just some of them.
@@ -194,4 +219,4 @@ Then add that ID to the script command to run just that data set, for example:
 
 ## Problems?
 
-Please file [an issue](https://github.com/dtenenba/oncoscape_plsr/issues).
+Please file [an issue](../../issues/).

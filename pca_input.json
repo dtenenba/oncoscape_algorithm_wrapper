@@ -1,0 +1,27 @@
+{
+   "disease":"brain",
+   "genes":[
+      "MYC",
+      "EGFR",
+      "IDH1",
+      "PTEN"
+   ],
+   "samples":[
+      "TCGA-E1-5319-01",
+      "TCGA-HT-7693-01",
+      "TCGA-16-1060-01",
+      "TCGA-CS-6665-01",
+      "TCGA-S9-A7J2-01",
+      "TCGA-74-6577-01",
+      "TCGA-02-0258-01",
+      "TCGA-FG-A6J3-01",
+      "TCGA-08-0344-01",
+      "TCGA-16-1062-01",
+      "TCGA-FG-6688-01",
+      "TCGA-S9-A6TX-01",
+      "TCGA-27-1833-01",
+      "TCGA-VM-A8C8-01"
+   ],
+   "molecular_collection":"tcga_gbmlgg_exp_hiseqv2_ucsc-xena",
+   "n_components":3
+}

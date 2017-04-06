@@ -1,52 +1,45 @@
 """
-To start this app during local development, run the following:
-
-FLASK_APP=flask_app.py FLASK_DEBUG=1 flask run -p 8000
-
-To call the app with some sample data, run this (from another
-window in this same directory):
-
-curl -vX POST http://localhost:8000/plsr -d @sample_input2.json  --header "Content-Type: application/json"
-
-To run this app in a 'production' context, run:
-
-./run.sh
-
-To run it inside a Docker container, see the README.
-
+See the README for information on how to run this app.
 """
 
 import json
+# from abc import ABCMeta, abstractmethod
 
 from flask import Flask, jsonify, request, Response
 from flask_restful import Resource, Api
 
-import do_plsr
-app = Flask(__name__)
-api = Api(app)
+from plsr_wrapper import PLSRWrapper
+from pca_wrapper import PCAWrapper
 
+app = Flask(__name__) # pylint: disable=invalid-name
+api = Api(app) # pylint: disable=invalid-name
 
-
-class DoPLSR(Resource):
-    def post(self):
-        # The force arg ignores content type, otherwise a
-        # Content-Type: application/json
-        # header must be present in the request.
+def post_factory(algorithm_class):
+    """create post methods based on algorithm class"""
+    def post(self): # pylint: disable=no-self-use,unused-argument
+        """Closure for POST method"""
         json_data = request.get_json(force=True)
-        expected_keys = ['disease', 'genes', 'samples', 'features',
-                         'molecular_collection', 'clinical_collection',
-                         'n_components']
-        if not sorted(json_data.keys()) == sorted(expected_keys):
+        expected_keys = algorithm_class.get_input_parameters()
+        if not sorted(json_data.keys()) == expected_keys:
             error = "missing key(s): input must contain all of: {}"
             jstr = json.dumps(dict(reason=error.format(expected_keys)))
             resp = Response(jstr,
                             status=400, mimetype='application/json')
             return resp
-        result = do_plsr.plsr_wrapper(**json_data)
+        result = algorithm_class(**json_data).run_algorithm()
 
         return jsonify(result)
+    return post
 
-api.add_resource(DoPLSR, '/plsr')
+# dynamically create resource classes using a closure from post_factory()
+PLSRResource = type("PLSRResource", (Resource,),
+                    {"post": post_factory(PLSRWrapper)})
+PCAResource = type("PCAResource", (Resource,),
+                   {"post": post_factory(PCAWrapper)})
+
+# map endpoints to resource classes
+api.add_resource(PLSRResource, '/plsr')
+api.add_resource(PCAResource, '/pca')
 
 if __name__ == '__main__':
-    app.run(port=8000)
+    app.run(port=8000) # don't run me this way, see README
