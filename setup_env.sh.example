@@ -9,5 +9,11 @@
 # So you can run/test/develop this code or start the
 # Docker container.
 
+# If you are developing outside the Hutch, you need an
+# ssh tunnel. Set it up like this:
+# ssh -f -N -L27017:oncoscape-dev-db1.sttrcancer.io:27017 $USER@snail.fhcrc.org
+# And set your MONGO_URL (below) to
+# mongodb://username:password@localhost:27017/tcga?authSource=admin
+
 
 export MONGO_URL="CHANGE_THIS"
