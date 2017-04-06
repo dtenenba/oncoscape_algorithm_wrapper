@@ -83,7 +83,6 @@ def main():
         input_data = json.load(jsonfile)
     wrapper = PLSRWrapper(**input_data)
     result = wrapper.run_algorithm()
-    # TODO return JSON output
     print(json.dumps(result, indent=4))
 
 

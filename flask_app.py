@@ -3,7 +3,6 @@ See the README for information on how to run this app.
 """
 
 import json
-# from abc import ABCMeta, abstractmethod
 
 from flask import Flask, jsonify, request, Response
 from flask_restful import Resource, Api

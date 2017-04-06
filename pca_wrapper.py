@@ -16,6 +16,7 @@ class PCAWrapper(AbstractAlgorithmWrapper):
 
     @classmethod
     def get_input_parameters(cls):
+        """Concrete implementation of abstract class method"""
         return sorted(['disease', 'genes', 'samples', 'molecular_collection',
                        'n_components'])
 
@@ -77,7 +78,6 @@ def main():
         input_data = json.load(jsonfile)
     wrapper = PCAWrapper(**input_data)
     result = wrapper.run_algorithm()
-    # TODO return JSON output
     print(json.dumps(result, indent=4))
 
 
