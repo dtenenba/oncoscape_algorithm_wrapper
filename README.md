@@ -107,11 +107,11 @@ If you want to develop inside the container, run
 instead. This will mount the current directory inside the container
 and drop you at a bash prompt in that directory.
 
-Note that the Docker container used, `dtenenba/oncoscape_plsr`,
+Note that the Docker container used, `dtenenba/oncoscape_algorithm_wrapper`,
 is rebuilt every time there is a push to
 [this GitHub repository](.).
 You can see build reports
-[here](https://hub.docker.com/r/dtenenba/oncoscape_plsr/builds/). <!-- FIXME update this -->
+[here](https://hub.docker.com/r/dtenenba/ooncoscape_algorithm_wrapper/builds/).
 
 ## Calling the service
 
