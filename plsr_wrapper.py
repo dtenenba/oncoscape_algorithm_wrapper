@@ -20,6 +20,20 @@ class PLSRWrapper(AbstractAlgorithmWrapper):
                        'molecular_collection', 'clinical_collection',
                        'n_components'])
 
+    @classmethod
+    def get_algorithm_name(cls):
+        """Concrete implementation of abstract method"""
+        return "PLSR"
+
+    @classmethod
+    def get_default_input_file(cls):
+        """
+        Return the name of a JSON
+        file to be used as the default input file for example runs.
+        """
+        return "sample_input2.json"
+
+
    # constructor is in AbstractAlgorithmWrapper
 
     def run_algorithm(self):
@@ -73,18 +87,5 @@ class PLSRWrapper(AbstractAlgorithmWrapper):
         return ret_obj
 
 
-def main():
-    """Run the wrapper on an input file"""
-    if len(sys.argv) > 1:
-        json_filename = sys.argv[1]
-    else:
-        json_filename = "sample_input2.json"
-    with open(json_filename) as jsonfile:
-        input_data = json.load(jsonfile)
-    wrapper = PLSRWrapper(**input_data)
-    result = wrapper.run_algorithm()
-    print(json.dumps(result, indent=4))
-
-
 if __name__ == '__main__':
-    main()
+    AbstractAlgorithmWrapper.entrypoint(PLSRWrapper)

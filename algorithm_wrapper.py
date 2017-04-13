@@ -4,6 +4,7 @@ Contains an abstract parent class for algorithm wrappers.
 from abc import ABCMeta, abstractmethod
 import os
 import sys
+import json
 
 import pymongo
 import pandas as pd
@@ -103,6 +104,36 @@ class AbstractAlgorithmWrapper(object): # pylint: disable=too-many-instance-attr
     def get_input_parameters(cls):
         """Subclasses override this to indicate input parameters."""
         pass
+
+    @classmethod
+    @abstractmethod
+    def get_algorithm_name(cls):
+        """Subclasses override this to return algorithm name"""
+        pass
+
+    @classmethod
+    @abstractmethod
+    def get_default_input_file(cls):
+        """
+        Subclasses override this to return the name of a JSON
+        file to be used as the default input file for example runs.
+        """
+        pass
+
+
+    @classmethod
+    def entrypoint(cls, algorithm):
+        """Run the wrapper on an input file"""
+        if len(sys.argv) > 1:
+            json_filename = sys.argv[1]
+        else:
+            json_filename = algorithm.get_default_input_file()
+        with open(json_filename) as jsonfile:
+            input_data = json.load(jsonfile)
+        wrapper = algorithm(**input_data)
+        result = wrapper.run_algorithm()
+        print(json.dumps(result, indent=4))
+
 
     @abstractmethod
     def run_algorithm(self):

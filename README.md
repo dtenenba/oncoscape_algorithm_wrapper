@@ -157,11 +157,9 @@ algorithm which may indicate a problem.
 
 ## Smoke Testing
 
-`smoker.py` is a program that generates input to the PLSR wrapper
+`smoker.py` is a program that generates input to the algorithm wrapper
 and then runs the wrapper with that input and tells you the result
 (success or failure; warnings) and the time it took to run.
-
-**TODO**: Make this program support PCA as well.
 
 If no parameters are specified, the input generated is totally random,
 but you can specify all aspects of the input, or just some of them.
@@ -172,7 +170,10 @@ This program requires a local instance of MongoDB (`mongod`) to be
 running, because it saves the input objects it generates, in case you
 want to re-run one of them for further debugging.
 
-Run with no arguments (`python smoker.py`), the script
+You need to specify the algorithm (currently `PCA` or `PLSR` with
+the `-a` flag).
+Run with no additional arguments
+(e.g. `python smoker.py -a PLSR`), the script
 will generate 10 random sets
 of input data and call the PLSR wrapper 10 times with that data,
 reporting the result and time it took to run.
@@ -206,7 +207,7 @@ db.getCollection('smokes').find({}, {_id: 1}).sort({"timestamp": -1}).limit(1).n
 
 Then add that ID to the script command to run just that data set, for example:
 
-    python smoker.py 58d96d580f45e77ae6c25738
+    python smoker.py -i 58d96d580f45e77ae6c25738
 
 
 
