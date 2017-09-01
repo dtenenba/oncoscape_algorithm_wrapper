@@ -3,11 +3,24 @@ Contains an abstract parent class for algorithm wrappers.
 """
 from abc import ABCMeta, abstractmethod
 import os
+import datetime
 import sys
 import json
 
+from joblib import Parallel, delayed
+import multiprocessing
+
 import pymongo
 import pandas as pd
+import numpy as np
+
+def cursor_to_data_frame_pp(item): # pylint: disable=no-self-use
+    result = pd.Series(list(item['data'].values()),
+                            index=list(item['data'].keys()))
+    #print(result)
+    return result
+
+parallelize = False
 
 
 class AbstractAlgorithmWrapper(object): # pylint: disable=too-many-instance-attributes
@@ -25,6 +38,8 @@ class AbstractAlgorithmWrapper(object): # pylint: disable=too-many-instance-attr
             sys.exit(1)
         self.client = pymongo.MongoClient(self.mongo_url)
         self.db = self.client.tcga # pylint: disable=invalid-name
+        self.num_cores = multiprocessing.cpu_count()-1
+
 
     def __init__(self, disease, genes, samples, # pylint: disable=too-many-arguments
                  molecular_collection, n_components,
@@ -38,9 +53,17 @@ class AbstractAlgorithmWrapper(object): # pylint: disable=too-many-instance-attr
           disease, genes, samples, molecular_collection, n_components, \
           clinical_collection, features
 
-        self.mol_df = self.get_data_frame(self.molecular_collection,
+        then = datetime.datetime.now()
+        print('get_data_frame: {:%Y-%m-%d %H:%M:%S}'.format(datetime.datetime.now()))
+        if(len(genes) == 0):
+            self.mol_df = self.get_data_frame(self.molecular_collection)
+        else:
+            self.mol_df = self.get_data_frame(self.molecular_collection,
                                           {"id": {"$in": genes}})
-
+        diff = datetime.datetime.now() - then
+        print(diff)
+        #print(self.mol_df)
+        
         if self.samples: # subset by samples
             subset = [x for x in self.mol_df.index if x in self.samples]
             self.mol_df = self.mol_df.loc[subset]
@@ -62,9 +85,7 @@ class AbstractAlgorithmWrapper(object): # pylint: disable=too-many-instance-attr
             self.clin_df.dropna(inplace=True) # just drop them in one go from clin_df
 
         # same for mol_df
-        mol_rows_to_drop = \
-          self.mol_df[self.mol_df.isnull().any(axis=1)].index.tolist()
-        self.mol_df.dropna(inplace=True)
+        self.mol_df.dropna(inplace=True, how="any", axis=1)
 
         if self.clinical_collection:
             # Now we need to make sure that the rows we dropped above are dropped
@@ -144,6 +165,15 @@ class AbstractAlgorithmWrapper(object): # pylint: disable=too-many-instance-attr
         """
         pass
 
+    def cursor_get_ids(self, cursor): # pylint: disable=no-self-use
+        """Iterate through a Mongo cursor & put result in pandas DataFrame"""
+        dfr = []
+        for item in cursor:
+            key = item['id']
+            dfr[key] = pd.Series(list(item['data'].values()),
+                                 index=list(item['data'].keys()))
+        return dfr
+
     def cursor_to_data_frame(self, cursor): # pylint: disable=no-self-use
         """Iterate through a Mongo cursor & put result in pandas DataFrame"""
         dfr = pd.DataFrame()
@@ -153,17 +183,36 @@ class AbstractAlgorithmWrapper(object): # pylint: disable=too-many-instance-attr
                                  index=list(item['data'].keys()))
         return dfr
 
+    def cursor_to_data_frame2(self, cursor): # pylint: disable=no-self-use
+        """Iterate through a Mongo cursor & put result in pandas DataFrame"""
+        df = [item['d'] for item in list(cursor)]
+        return pd.DataFrame(df)
 
     def get_data_frame(self, collection, query=None, projection=None):
         """Return a data frame given a mongo collection, query, & projection"""
         if not query:
             query = {}
-        if not projection:
-            projection = {}
-        cursor = self.db[collection].find(query, None)
+        # if not projection:
+        #     projection = {}
+        
+        cursor = self.db[collection].find(query, projection)
+
+        if parallelize:
+            ids = [x["id"] for x in list(self.db[collection].find(query, {'id':True, '_id':False}))]
+            dfr = Parallel(n_jobs=self.num_cores)(delayed(cursor_to_data_frame_pp)(item) for item in cursor)
+            dfr2 = pd.DataFrame(np.array(dfr).reshape(-1,len(dfr[1])), columns=dfr[1].keys(), index=ids).transpose()
+            dfr2.sort_index(inplace=True)
+            return dfr2
+
+        ### another potential options to explore -
+        #  df =  pd.DataFrame(list(cursor))
+        #  df = [list(item['data'].values()) for item in cursor]
+        
         dfr = self.cursor_to_data_frame(cursor)
         dfr.sort_index(inplace=True)
         return dfr
+        
+        
 
 
     def get_projection(self, items): # pylint: disable=no-self-use
@@ -210,7 +259,7 @@ class AbstractAlgorithmWrapper(object): # pylint: disable=too-many-instance-attr
         output = []
         assert len(labels) == len(inputdata)
         for idx, item in enumerate(inputdata):
-            hsh = {"id": labels[idx], "value": item}
+            hsh = {"id": labels[idx], "d": item}
             output.append(hsh)
         return output
 

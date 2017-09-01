@@ -3,6 +3,7 @@ import warnings
 import os
 import sys
 import json
+import datetime
 
 from sklearn.decomposition import PCA
 import numpy as np
@@ -47,7 +48,11 @@ class PCAWrapper(AbstractAlgorithmWrapper):
             print("There's an error, skipping pca.fit()...")
         else:
             try:
+                then = datetime.datetime.now()
+                print('fit_transform: {:%Y-%m-%d %H:%M:%S}'.format(datetime.datetime.now()))
                 scores = pca.fit_transform(self.mol_df)
+                diff = datetime.datetime.now() - then
+                print(diff)
             except Exception as exc: # pylint: disable=broad-except
                 self.error = str(exc)
 
