@@ -37,20 +37,20 @@ class AbstractAlgorithmWrapper(object): # pylint: disable=too-many-instance-attr
             print("Exiting.")
             sys.exit(1)
         self.client = pymongo.MongoClient(self.mongo_url)
-        self.db = self.client.tcga # pylint: disable=invalid-name
+        self.db = self.client.v2 # pylint: disable=invalid-name
         self.num_cores = multiprocessing.cpu_count()-1
 
 
-    def __init__(self, disease, genes, samples, # pylint: disable=too-many-arguments
+    def __init__(self, dataset, genes, samples, # pylint: disable=too-many-arguments
                  molecular_collection, n_components,
                  clinical_collection=None,
                  features=None):
         """Constructor. Inheriting classes do not need to define __init__"""
         self.init_db()
 
-        self.disease, self.genes, self.samples, self.molecular_collection, \
+        self.dataset, self.genes, self.samples, self.molecular_collection, \
           self.n_components, self.clinical_collection, self.features = \
-          disease, genes, samples, molecular_collection, n_components, \
+          dataset, genes, samples, molecular_collection, n_components, \
           clinical_collection, features
 
         then = datetime.datetime.now()
@@ -71,7 +71,7 @@ class AbstractAlgorithmWrapper(object): # pylint: disable=too-many-instance-attr
 
         if self.clinical_collection:
             self.clin_df = self.clin_coll_to_df(self.clinical_collection,
-                                                self.disease,
+                                                self.dataset,
                                                 self.features,
                                                 self.samples)
 
@@ -85,6 +85,7 @@ class AbstractAlgorithmWrapper(object): # pylint: disable=too-many-instance-attr
             self.clin_df.dropna(inplace=True) # just drop them in one go from clin_df
 
         # same for mol_df
+        self.mol_df = self.mol_df[~self.mol_df.isin(['NaN', 'NaT']).any(axis=1)]
         self.mol_df.dropna(inplace=True, how="any", axis=1)
 
         if self.clinical_collection:
@@ -185,8 +186,11 @@ class AbstractAlgorithmWrapper(object): # pylint: disable=too-many-instance-attr
 
     def cursor_to_data_frame2(self, cursor): # pylint: disable=no-self-use
         """Iterate through a Mongo cursor & put result in pandas DataFrame"""
-        df = [item['d'] for item in list(cursor)]
-        return pd.DataFrame(df)
+        c = list(cursor)
+        df = [item['d'] for item in c]
+        dfr = pd.DataFrame(df, columns=c[0]["m"], index=[x["id"] for x in c])
+        
+        return dfr.transpose()
 
     def get_data_frame(self, collection, query=None, projection=None):
         """Return a data frame given a mongo collection, query, & projection"""
@@ -208,7 +212,7 @@ class AbstractAlgorithmWrapper(object): # pylint: disable=too-many-instance-attr
         #  df =  pd.DataFrame(list(cursor))
         #  df = [list(item['data'].values()) for item in cursor]
         
-        dfr = self.cursor_to_data_frame(cursor)
+        dfr = self.cursor_to_data_frame2(cursor)
         dfr.sort_index(inplace=True)
         return dfr
         
@@ -264,10 +268,10 @@ class AbstractAlgorithmWrapper(object): # pylint: disable=too-many-instance-attr
         return output
 
 
-    def clin_coll_to_df(self, clinical_collection, disease, # pylint: disable=too-many-locals
+    def clin_coll_to_df(self, clinical_collection, dataset, # pylint: disable=too-many-locals
                         features, samples):
         """Convert clinical collection to a pandas DataFrame"""
-        mapcol = "{}_samplemap".format(disease)
+        mapcol = "{}_samplemap".format(dataset)
         sample_pt_map = self.db[mapcol].find_one()
         if samples:
             wanted_pts = [sample_pt_map[x] for x in samples]

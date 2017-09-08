@@ -18,7 +18,7 @@ class PCAWrapper(AbstractAlgorithmWrapper):
     @classmethod
     def get_input_parameters(cls):
         """Concrete implementation of abstract class method"""
-        return sorted(['disease', 'genes', 'samples', 'molecular_collection',
+        return sorted(['dataset', 'genes', 'samples', 'molecular_collection',
                        'n_components'])
 
     @classmethod
@@ -61,7 +61,7 @@ class PCAWrapper(AbstractAlgorithmWrapper):
         if not self.error and np.all(np.isnan(scores)): # all scores values are NaN
             self.error = "results are NaN; too few rows in input?"
 
-        ret_obj = {"disease": self.disease,
+        ret_obj = {"dataset": self.dataset,
                    "dataType": "PCA",
                    "score": "sample",
                    "loading": "hugo",
