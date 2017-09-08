@@ -187,6 +187,8 @@ class AbstractAlgorithmWrapper(object): # pylint: disable=too-many-instance-attr
     def cursor_to_data_frame2(self, cursor): # pylint: disable=no-self-use
         """Iterate through a Mongo cursor & put result in pandas DataFrame"""
         c = list(cursor)
+        if(len(c)==0):
+            return pd.DataFrame()
         df = [item['d'] for item in c]
         dfr = pd.DataFrame(df, columns=c[0]["m"], index=[x["id"] for x in c])
         
@@ -213,7 +215,8 @@ class AbstractAlgorithmWrapper(object): # pylint: disable=too-many-instance-attr
         #  df = [list(item['data'].values()) for item in cursor]
         
         dfr = self.cursor_to_data_frame2(cursor)
-        dfr.sort_index(inplace=True)
+        if(dfr is not None):
+            dfr.sort_index(inplace=True)
         return dfr
         
         
