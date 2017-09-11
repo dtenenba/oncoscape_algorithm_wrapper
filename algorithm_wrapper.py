@@ -6,8 +6,10 @@ import os
 import datetime
 import sys
 import json
+import pickle
+from bson.binary import Binary
 
-from joblib import Parallel, delayed
+#from joblib import Parallel, delayed
 import multiprocessing
 
 import pymongo
@@ -64,6 +66,19 @@ class AbstractAlgorithmWrapper(object): # pylint: disable=too-many-instance-attr
         print(diff)
         #print(self.mol_df)
         
+        #  with open('test.pkl', 'wb') as output:
+        #      pickle.dump(self.mol_df, output, pickle.HIGHEST_PROTOCOL)
+
+        # with open('test.pkl', 'rb') as input:
+        #     dfr = pickle.load(input)
+
+        # thebytes = pickle.dumps(self.mol_df)
+        # print(sys.getsizeof(thebytes))
+        # self.db[self.molecular_collection+"_py"].insert({'mol_df': Binary(thebytes)})
+
+        # cursor = self.db[self.molecular_collection+"_py"].find()
+        # restored = pickle.loads(cursor[0]['mol_df'])
+
         if self.samples: # subset by samples
             subset = [x for x in self.mol_df.index if x in self.samples]
             self.mol_df = self.mol_df.loc[subset]
