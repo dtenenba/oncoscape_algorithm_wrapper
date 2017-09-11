@@ -85,7 +85,7 @@ class AbstractAlgorithmWrapper(object): # pylint: disable=too-many-instance-attr
             self.clin_df.dropna(inplace=True) # just drop them in one go from clin_df
 
         # same for mol_df
-        self.mol_df = self.mol_df[~self.mol_df.isin(['NaN', 'NaT']).any(axis=1)]
+        self.mol_df = self.mol_df.drop(self.mol_df.columns[self.mol_df.isin(["NaN", "NaT"]).any()],1)
         self.mol_df.dropna(inplace=True, how="any", axis=1)
 
         if self.clinical_collection:
