@@ -45,23 +45,29 @@ class AbstractAlgorithmWrapper(object): # pylint: disable=too-many-instance-attr
 
     def __init__(self, dataset, genes, samples, # pylint: disable=too-many-arguments
                  molecular_collection, n_components,
+                 molecular_collection2 = None,
                  clinical_collection=None,
                  features=None):
         """Constructor. Inheriting classes do not need to define __init__"""
         self.init_db()
 
         self.dataset, self.genes, self.samples, self.molecular_collection, \
-          self.n_components, self.clinical_collection, self.features = \
-          dataset, genes, samples, molecular_collection, n_components, \
-          clinical_collection, features
+          self.molecular_collection2, self.n_components, self.clinical_collection, self.features = \
+          dataset, genes, samples, molecular_collection, molecular_collection2,  \
+          n_components, clinical_collection, features
 
         then = datetime.datetime.now()
         print('get_data_frame: {:%Y-%m-%d %H:%M:%S}'.format(datetime.datetime.now()))
         if(len(genes) == 0):
             self.mol_df = self.get_data_frame(self.molecular_collection)
+            if(self.molecular_collection2):
+                self.mol_df2 = self.get_data_frame(self.molecular_collection2)
         else:
             self.mol_df = self.get_data_frame(self.molecular_collection,
                                           {"id": {"$in": genes}})
+            if(self.molecular_collection2):
+                self.mol_df2 = self.get_data_frame(self.molecular_collection2,
+                                        {"id": {"$in": genes}})
         diff = datetime.datetime.now() - then
         print(diff)
         #print(self.mol_df)
@@ -82,7 +88,15 @@ class AbstractAlgorithmWrapper(object): # pylint: disable=too-many-instance-attr
         if self.samples: # subset by samples
             subset = [x for x in self.mol_df.index if x in self.samples]
             self.mol_df = self.mol_df.loc[subset]
+       
         self.mol_df.sort_index(inplace=True)
+        self.mol_df = self.mol_df.drop(self.mol_df.columns[self.mol_df.isin(["NaN", "NaT"]).any()],1)
+        self.mol_df.dropna(inplace=True, how="any", axis=1)
+
+        if(self.molecular_collection2)
+            self.mol_df2.sort_index(inplace=True)
+            self.mol_df2 = self.mol_df2.drop(self.mol_df2.columns[self.mol_df2(["NaN", "NaT"]).any()],1)
+            self.mol_df2.dropna(inplace=True, how="any", axis=1)
 
         if self.clinical_collection:
             self.clin_df = self.clin_coll_to_df(self.clinical_collection,
@@ -96,14 +110,9 @@ class AbstractAlgorithmWrapper(object): # pylint: disable=too-many-instance-attr
 
             # does clin_df have any NAs in it? If so, remove those rows:
             clin_rows_to_drop =  \
-              self.clin_df[self.clin_df.isnull().any(axis=1)].index.tolist()
+            self.clin_df[self.clin_df.isnull().any(axis=1)].index.tolist()
             self.clin_df.dropna(inplace=True) # just drop them in one go from clin_df
 
-        # same for mol_df
-        self.mol_df = self.mol_df.drop(self.mol_df.columns[self.mol_df.isin(["NaN", "NaT"]).any()],1)
-        self.mol_df.dropna(inplace=True, how="any", axis=1)
-
-        if self.clinical_collection:
             # Now we need to make sure that the rows we dropped above are dropped
             # from the corresponding data frame as well.
 
@@ -127,6 +136,8 @@ class AbstractAlgorithmWrapper(object): # pylint: disable=too-many-instance-attr
         # make sure that we still have rows in the data frames!
         if not len(self.mol_df.index):
             self.error = "No non-NA rows in molecular input"
+        if self.molecular_collection2 and not len(self.mol_df2.index):
+            self.error = "No non-NA rows in molecular input2"
         if self.clinical_collection and not len(self.clin_df.index):
             self.error = "No non-NA rows in clinical input"
 
