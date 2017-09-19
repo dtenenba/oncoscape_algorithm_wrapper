@@ -47,20 +47,19 @@ class DistanceWrapper(AbstractAlgorithmWrapper):
                 same_genes = np.intersect1d(self.mol_df.columns.values, self.mol_df2.columns.values)
                 if(len(same_genes) == 0):
                     self.error = "No overlapping genes for comparison"
-                    return
-
-                self.mol_df = self.mol_df[same_genes]
-                self.mol_df2 = self.mol_df2[same_genes]
-                # subset the matrices to intersection & ordered genes across samples 
-                
-                D = np.corrcoef(self.mol_df.astype('float64'), self.mol_df2.astype('float64'))
-                D = D[:self.mol_df.shape[0], (-1*self.mol_df2.shape[0]):]
-                # sample to sample matrix of similarity metric (uses columns - genes - as variables and rows -samples - as observations)
-                # res = (s_df1 + s_df2) x (s_df1 + s_df2) correlation mtx - select top right row/cols 
-                # returns sample_df1 x sample_df2 array of Pearson product-moment correlation coefficients
-                
-                diff = datetime.datetime.now() - then
-                print(diff)
+                else:
+                    self.mol_df = self.mol_df[same_genes]
+                    self.mol_df2 = self.mol_df2[same_genes]
+                    # subset the matrices to intersection & ordered genes across samples 
+                    
+                    D = np.corrcoef(self.mol_df.astype('float64'), self.mol_df2.astype('float64'))
+                    D = D[ (-1*self.mol_df2.shape[0]):,:self.mol_df.shape[0]]
+                    # sample to sample matrix of similarity metric (uses columns - genes - as variables and rows -samples - as observations)
+                    # res = (s_df1 + s_df2) x (s_df1 + s_df2) correlation mtx - select bottom left row/cols 
+                    # returns sample_df2 x sample_df1 array of Pearson product-moment correlation coefficients
+                    
+                    diff = datetime.datetime.now() - then
+                    print(diff)
             except Exception as exc: # pylint: disable=broad-except
                 self.error = str(exc)
 
@@ -77,7 +76,7 @@ class DistanceWrapper(AbstractAlgorithmWrapper):
         if self.error:
             ret_obj['reason'] = self.error
         else:
-            ret2 = {"D": self.display_result(D.tolist(), self.mol_df, self.mol_df2.index.values)}
+            ret2 = {"D": self.display_result(D.tolist(), self.mol_df2,self.mol_df.index.values)}
             ret_obj.update(ret2)
             if self.warning:
                 ret_obj['warning'] = self.warning
