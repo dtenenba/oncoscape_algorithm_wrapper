@@ -8,17 +8,13 @@ import datetime
 import numpy as np
 
 from algorithm_wrapper import AbstractAlgorithmWrapper
-
-
-
 class DistanceWrapper(AbstractAlgorithmWrapper):
     """Distance Wrapper concrete class"""
 
     @classmethod
     def get_input_parameters(cls):
         """Concrete implementation of abstract class method"""
-        return sorted(['dataset1', 'molecular1','dataset2', 'molecular2',
-                         'genes', 'samples', 'n_components'])
+        return sorted(['molecular_collection', 'molecular_collection2'])
 
     @classmethod
     def get_algorithm_name(cls):
@@ -39,11 +35,6 @@ class DistanceWrapper(AbstractAlgorithmWrapper):
     def run_algorithm(self):
         """Overriding abstract method"""
 
-        # get molecular table 1 and 2
-        # subset to relevant genes
-        # calculate distance metric (correlation, euclidean, ...)
-        
-
         old_showwarning = warnings.showwarning
         warnings.showwarning = self.custom_warn_function
         if self.error:
@@ -53,10 +44,20 @@ class DistanceWrapper(AbstractAlgorithmWrapper):
                 then = datetime.datetime.now()
                 print('"Distance calculation": {:%Y-%m-%d %H:%M:%S}'.format(datetime.datetime.now()))
                 
+                same_genes = np.intersect1d(self.mol_df.columns.values, self.mol_df2.columns.values)
+                if(len(same_genes) == 0):
+                    self.error = "No overlapping genes for comparison"
+                    return
+
+                self.mol_df = self.mol_df[same_genes]
+                self.mol_df2 = self.mol_df2[same_genes]
                 # subset the matrices to intersection & ordered genes across samples 
                 
-                D = np.corrcoef(self.mol_df, self.mol_df2)
-                # sample to sample matrix of similarity metric
+                D = np.corrcoef(self.mol_df.astype('float64'), self.mol_df2.astype('float64'))
+                D = D[:self.mol_df.shape[0], (-1*self.mol_df2.shape[0]):]
+                # sample to sample matrix of similarity metric (uses columns - genes - as variables and rows -samples - as observations)
+                # res = (s_df1 + s_df2) x (s_df1 + s_df2) correlation mtx - select top right row/cols 
+                # returns sample_df1 x sample_df2 array of Pearson product-moment correlation coefficients
                 
                 diff = datetime.datetime.now() - then
                 print(diff)
@@ -76,7 +77,7 @@ class DistanceWrapper(AbstractAlgorithmWrapper):
         if self.error:
             ret_obj['reason'] = self.error
         else:
-            ret2 = {"D": self.display_result(D.tolist(), self.mol_df)}
+            ret2 = {"D": self.display_result(D.tolist(), self.mol_df, self.mol_df2.index.values)}
             ret_obj.update(ret2)
             if self.warning:
                 ret_obj['warning'] = self.warning

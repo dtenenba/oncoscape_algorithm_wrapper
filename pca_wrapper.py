@@ -1,4 +1,4 @@
-"""PLSR Wrapper concrete implementation"""
+"""PCA Wrapper concrete implementation"""
 import warnings
 import os
 import sys
@@ -75,7 +75,7 @@ class PCAWrapper(AbstractAlgorithmWrapper):
         else:
             ret2 = {"scores": self.display_result(scores.tolist(), self.mol_df),
                     "loadings": self.display_result(pca.components_.transpose().tolist(),
-                                                    self.mol_df, False),
+                                                    self.mol_df, row_wise=False),
                     "metadata": dict(variance=pca.explained_variance_ratio_.tolist())}
             ret_obj.update(ret2)
             if self.warning:

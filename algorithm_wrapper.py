@@ -43,11 +43,14 @@ class AbstractAlgorithmWrapper(object): # pylint: disable=too-many-instance-attr
         self.num_cores = multiprocessing.cpu_count()-1
 
 
-    def __init__(self, dataset, genes, samples, # pylint: disable=too-many-arguments
-                 molecular_collection, n_components,
-                 molecular_collection2 = None,
+    def __init__(self, dataset=None, genes=[], samples=[], 
+                 molecular_collection=None, molecular_collection2 = None,
+                 n_components=None,
                  clinical_collection=None,
                  features=None):
+        
+        print(dataset, genes, samples, molecular_collection, molecular_collection2, n_components, clinical_collection, features)
+        sys.stdout.flush()
         """Constructor. Inheriting classes do not need to define __init__"""
         self.init_db()
 
@@ -56,9 +59,11 @@ class AbstractAlgorithmWrapper(object): # pylint: disable=too-many-instance-attr
           dataset, genes, samples, molecular_collection, molecular_collection2,  \
           n_components, clinical_collection, features
 
+
+
         then = datetime.datetime.now()
         print('get_data_frame: {:%Y-%m-%d %H:%M:%S}'.format(datetime.datetime.now()))
-        if(len(genes) == 0):
+        if(len(self.genes) == 0):
             self.mol_df = self.get_data_frame(self.molecular_collection)
             if(self.molecular_collection2):
                 self.mol_df2 = self.get_data_frame(self.molecular_collection2)
@@ -93,9 +98,9 @@ class AbstractAlgorithmWrapper(object): # pylint: disable=too-many-instance-attr
         self.mol_df = self.mol_df.drop(self.mol_df.columns[self.mol_df.isin(["NaN", "NaT"]).any()],1)
         self.mol_df.dropna(inplace=True, how="any", axis=1)
 
-        if(self.molecular_collection2)
+        if self.molecular_collection2:
             self.mol_df2.sort_index(inplace=True)
-            self.mol_df2 = self.mol_df2.drop(self.mol_df2.columns[self.mol_df2(["NaN", "NaT"]).any()],1)
+            self.mol_df2 = self.mol_df2.drop(self.mol_df2.columns[self.mol_df2.isin(["NaN", "NaT"]).any()],1)
             self.mol_df2.dropna(inplace=True, how="any", axis=1)
 
         if self.clinical_collection:
@@ -257,7 +262,7 @@ class AbstractAlgorithmWrapper(object): # pylint: disable=too-many-instance-attr
             ret[item] = 1
         return ret
 
-    def display_result(self, inputdata, data_frame, row_wise=True): # pylint: disable=no-self-use
+    def display_result(self, inputdata, data_frame, m=[], row_wise=True): # pylint: disable=no-self-use
         """
         If we call this from inside plsr_wrapper as follows:
 
@@ -291,8 +296,10 @@ class AbstractAlgorithmWrapper(object): # pylint: disable=too-many-instance-attr
             labels = data_frame.columns.tolist()
         output = []
         assert len(labels) == len(inputdata)
+        if len(m)>0:
+            m = m.tolist()
         for idx, item in enumerate(inputdata):
-            hsh = {"id": labels[idx], "d": item}
+            hsh = {"id": labels[idx], "d": item, "m": m}
             output.append(hsh)
         return output
 
