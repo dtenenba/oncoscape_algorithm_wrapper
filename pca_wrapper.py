@@ -1,8 +1,9 @@
-"""PLSR Wrapper concrete implementation"""
+"""PCA Wrapper concrete implementation"""
 import warnings
 import os
 import sys
 import json
+import datetime
 
 from sklearn.decomposition import PCA
 import numpy as np
@@ -17,7 +18,7 @@ class PCAWrapper(AbstractAlgorithmWrapper):
     @classmethod
     def get_input_parameters(cls):
         """Concrete implementation of abstract class method"""
-        return sorted(['disease', 'genes', 'samples', 'molecular_collection',
+        return sorted(['dataset', 'genes', 'samples', 'molecular_collection',
                        'n_components'])
 
     @classmethod
@@ -47,7 +48,11 @@ class PCAWrapper(AbstractAlgorithmWrapper):
             print("There's an error, skipping pca.fit()...")
         else:
             try:
+                then = datetime.datetime.now()
+                print('fit_transform: {:%Y-%m-%d %H:%M:%S}'.format(datetime.datetime.now()))
                 scores = pca.fit_transform(self.mol_df)
+                diff = datetime.datetime.now() - then
+                print(diff)
             except Exception as exc: # pylint: disable=broad-except
                 self.error = str(exc)
 
@@ -56,7 +61,7 @@ class PCAWrapper(AbstractAlgorithmWrapper):
         if not self.error and np.all(np.isnan(scores)): # all scores values are NaN
             self.error = "results are NaN; too few rows in input?"
 
-        ret_obj = {"disease": self.disease,
+        ret_obj = {"dataset": self.dataset,
                    "dataType": "PCA",
                    "score": "sample",
                    "loading": "hugo",
@@ -70,7 +75,7 @@ class PCAWrapper(AbstractAlgorithmWrapper):
         else:
             ret2 = {"scores": self.display_result(scores.tolist(), self.mol_df),
                     "loadings": self.display_result(pca.components_.transpose().tolist(),
-                                                    self.mol_df, False),
+                                                    self.mol_df, row_wise=False),
                     "metadata": dict(variance=pca.explained_variance_ratio_.tolist())}
             ret_obj.update(ret2)
             if self.warning:

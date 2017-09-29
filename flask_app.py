@@ -9,6 +9,7 @@ from flask_restful import Resource, Api
 
 from plsr_wrapper import PLSRWrapper
 from pca_wrapper import PCAWrapper
+from distance_wrapper import DistanceWrapper
 
 app = Flask(__name__) # pylint: disable=invalid-name
 api = Api(app) # pylint: disable=invalid-name
@@ -35,10 +36,13 @@ PLSRResource = type("PLSRResource", (Resource,),
                     {"post": post_factory(PLSRWrapper)})
 PCAResource = type("PCAResource", (Resource,),
                    {"post": post_factory(PCAWrapper)})
+DistanceResource = type("DistanceResource", (Resource,),
+                   {"post": post_factory(DistanceWrapper)})
 
 # map endpoints to resource classes
 api.add_resource(PLSRResource, '/plsr')
 api.add_resource(PCAResource, '/pca')
+api.add_resource(DistanceResource, '/distance')
 
 if __name__ == '__main__':
     app.run(port=8000) # don't run me this way, see README

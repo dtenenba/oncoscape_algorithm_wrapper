@@ -1,0 +1,5 @@
+{"input":{	"dataset":"blca", 
+			"molecular_collection":"tcga_blca_rppa_ucsc-xena", 
+			"molecular_collection2": "tcga_blca_rppa_rbn_ucsc-xena"},
+"test": "non-overlapping geneset"
+}
