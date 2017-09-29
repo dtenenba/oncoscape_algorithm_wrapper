@@ -39,7 +39,7 @@ class AbstractAlgorithmWrapper(object): # pylint: disable=too-many-instance-attr
             print("Exiting.")
             sys.exit(1)
         self.client = pymongo.MongoClient(self.mongo_url)
-        self.db = self.client.v2 # pylint: disable=invalid-name
+        self.db = self.client.tcga # pylint: disable=invalid-name
         self.num_cores = multiprocessing.cpu_count()-1
 
 
@@ -221,7 +221,7 @@ class AbstractAlgorithmWrapper(object): # pylint: disable=too-many-instance-attr
         if(len(c)==0):
             return pd.DataFrame()
         df = [item['d'] for item in c]
-        dfr = pd.DataFrame(df, columns=c[0]["m"], index=[x["id"] for x in c])
+        dfr = pd.DataFrame(df, columns=c[0]["s"], index=[x["m"] for x in c])
         
         return dfr.transpose()
 
