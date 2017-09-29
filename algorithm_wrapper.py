@@ -32,7 +32,10 @@ class AbstractAlgorithmWrapper(object): # pylint: disable=too-many-instance-attr
     def init_db(self):
         """Initialize MongoDB connection"""
         # TODO - add connection pooling
-        self.mongo_url = os.getenv("MONGO_URL")
+        self.mongo_connection = os.getenv("MONGO_CONNECTION")
+        self.mongo_username = os.getenv("MONGO_USERNAME")
+        self.mongo_password = os.getenv("MONGO_PASSWORD")
+        self.mongo_url = str.replace(self.mongo_connection, "mongodb://", "mongodb://"+self.mongo_username +":"+self.mongo_password+"@")
         if not self.mongo_url:
             print("MONGO_URL is not defined in environment.")
             print("See the file setup_env.sh.example for more information.")
