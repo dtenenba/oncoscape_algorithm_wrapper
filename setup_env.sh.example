@@ -15,5 +15,7 @@
 # And set your MONGO_URL (below) to
 # mongodb://username:password@localhost:27017/tcga?authSource=admin
 
+export MONGO_CONNECTION="mongodb://oncoscape-dev-db1.sttrcancer.io:27017,oncoscape-dev-db2.sttrcancer.io:27017,oncoscape-dev-db3.sttrcancer.io:27017/tcga?authSource=admin"
+export MONGO_USERNAME="oncoscapeRead"
+export MONGO_PASSWORD="CHANGE_THIS"
 
-export MONGO_URL="CHANGE_THIS"
