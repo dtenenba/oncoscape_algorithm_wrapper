@@ -14,7 +14,7 @@ class DistanceWrapper(AbstractAlgorithmWrapper):
     @classmethod
     def get_input_parameters(cls):
         """Concrete implementation of abstract class method"""
-        return sorted(['molecular_collection', 'molecular_collection2'])
+        return sorted(['molecular_collection', 'molecular_collection2', 'genes'])
 
     @classmethod
     def get_algorithm_name(cls):
