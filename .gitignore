@@ -2,3 +2,4 @@ setup_env.sh
 config.py
 *.pyc
 __pycache__
+oncoscape_env/

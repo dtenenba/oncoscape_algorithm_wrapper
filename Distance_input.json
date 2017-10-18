@@ -1,3 +1,3 @@
 {"dataset":"acc", 
-"molecular_collection":"tcga_acc_gistic2_ucsc-xena", 
-"molecular_collection2": "tcga_acc_gistic2thd_ucsc-xena"}
+"molecular_collection":"acc_gistic2_ucsc-xena", 
+"molecular_collection2": "acc_gistic2thd_ucsc-xena"}

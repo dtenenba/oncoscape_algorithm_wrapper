@@ -1,7 +1,7 @@
 {
   "dataType": "PLSR", 
   "default": false, 
-  "disease": "brain", 
+  "dataset": "brain", 
   "metadata": [
     {
       "id": "PTEN", 
