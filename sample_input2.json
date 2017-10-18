@@ -1,5 +1,5 @@
 {
-   "disease":"brain",
+   "dataset":"brain",
    "genes":[
       "MYC",
       "EGFR",
@@ -26,7 +26,7 @@
       "age_at_diagnosis",
       "days_to_death"
    ],
-   "molecular_collection":"tcga_gbmlgg_exp_hiseqv2_ucsc-xena",
-   "clinical_collection":"brain_dashboard",
+   "molecular_collection":"gbmlgg_exp_hiseqv2_ucsc-xena",
+   "clinical_collection":"brain_phenotype",
    "n_components": 2
 }

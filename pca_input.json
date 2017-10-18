@@ -1,5 +1,5 @@
 {
-   "disease":"brain",
+   "dataset":"brain",
    "genes":[
       "MYC",
       "EGFR",
@@ -22,6 +22,6 @@
       "TCGA-27-1833-01",
       "TCGA-VM-A8C8-01"
    ],
-   "molecular_collection":"tcga_gbmlgg_exp_hiseqv2_ucsc-xena",
+   "molecular_collection":"gbmlgg_exp_hiseqv2_ucsc-xena",
    "n_components":3
 }
