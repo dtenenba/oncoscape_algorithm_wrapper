@@ -3,3 +3,5 @@ config.py
 *.pyc
 __pycache__
 oncoscape_env/
+oncs_env/
+test.pkl

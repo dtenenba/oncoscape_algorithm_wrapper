@@ -209,22 +209,21 @@ class AbstractAlgorithmWrapper(object): # pylint: disable=too-many-instance-attr
                                  index=list(item['data'].keys()))
         return dfr
 
-    def cursor_to_data_frame(self, cursor): # pylint: disable=no-self-use
+    def cursor_to_data_frame_big(self, cursor): # pylint: disable=no-self-use
         """Iterate through a Mongo cursor & put result in pandas DataFrame"""
         dfr = pd.DataFrame()
         for item in cursor:
-            key = item['id']
-            dfr[key] = pd.Series(list(item['data'].values()),
-                                 index=list(item['data'].keys()))
+            dfr[item['m']] = pd.Series(item['d'], index= item['s'])
+        
         return dfr
 
-    def cursor_to_data_frame2(self, cursor): # pylint: disable=no-self-use
+    def cursor_to_data_frame_small(self, cursor, samples): # pylint: disable=no-self-use
         """Iterate through a Mongo cursor & put result in pandas DataFrame"""
         c = list(cursor)
         if(len(c)==0):
             return pd.DataFrame()
         df = [item['d'] for item in c]
-        dfr = pd.DataFrame(df, columns=c[0]["s"], index=[x["m"] for x in c])
+        dfr = pd.DataFrame(df, columns=samples, index=[x["m"] for x in c])
         
         return dfr.transpose()
 
@@ -234,8 +233,9 @@ class AbstractAlgorithmWrapper(object): # pylint: disable=too-many-instance-attr
             query = {}
         # if not projection:
         #     projection = {}
-        
+        projection = {"d":1, "m":1}
         cursor = self.db[collection].find(query, projection)
+        samples = self.db[collection].find(query, {'s':1})[0]['s']
 
         if parallelize:
             ids = [x["id"] for x in list(self.db[collection].find(query, {'id':True, '_id':False}))]
@@ -247,14 +247,13 @@ class AbstractAlgorithmWrapper(object): # pylint: disable=too-many-instance-attr
         ### another potential options to explore -
         #  df =  pd.DataFrame(list(cursor))
         #  df = [list(item['data'].values()) for item in cursor]
-        
-        dfr = self.cursor_to_data_frame2(cursor)
+        # if(cursor.count() > 10000):
+        #     dfr = self.cursor_to_data_frame_big(cursor)
+        # else:
+        dfr = self.cursor_to_data_frame_small(cursor, samples)
         if(dfr is not None):
             dfr.sort_index(inplace=True)
         return dfr
-        
-        
-
 
     def get_projection(self, items): # pylint: disable=no-self-use
         """Given a list, make a hash suitable for a mongo projection"""
