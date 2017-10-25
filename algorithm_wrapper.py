@@ -72,10 +72,10 @@ class AbstractAlgorithmWrapper(object): # pylint: disable=too-many-instance-attr
                 self.mol_df2 = self.get_data_frame(self.molecular_collection2)
         else:
             self.mol_df = self.get_data_frame(self.molecular_collection,
-                                          {"id": {"$in": genes}})
+                                          {"m": {"$in": genes}})
             if(self.molecular_collection2):
                 self.mol_df2 = self.get_data_frame(self.molecular_collection2,
-                                        {"id": {"$in": genes}})
+                                        {"m": {"$in": genes}})
         diff = datetime.datetime.now() - then
         print(diff)
         #print(self.mol_df)
@@ -209,14 +209,43 @@ class AbstractAlgorithmWrapper(object): # pylint: disable=too-many-instance-attr
                                  index=list(item['data'].keys()))
         return dfr
 
-    def cursor_to_data_frame_big(self, cursor): # pylint: disable=no-self-use
+    def cursor_to_data_frame_big(self, cursor, samples): # pylint: disable=no-self-use
         """Iterate through a Mongo cursor & put result in pandas DataFrame"""
-        dfr = pd.DataFrame()
+        values = []
+        labels = []
         for item in cursor:
-            dfr[item['m']] = pd.Series(item['d'], index= item['s'])
+            values.append(item['d'])
+            labels.append(item['m'])
+            
+        dfr = pd.DataFrame(values, index = labels, columns=samples)
         
+        return dfr.transpose()
+
+    def iterator2dataframes(self, iterator, chunk_size):
+        """Turn an iterator into multiple small pandas.DataFrame
+        This is a balance between memory and efficiency
+        """
+        # http://ec2-54-218-106-48.us-west-2.compute.amazonaws.com/moschetti.org/rants/mongopandas.html
+        records = []
+        frames = []
+        labels = []
+        for i, record in enumerate(iterator):
+            records.append(record['d'])
+            labels.append(record['m'])
+            if i % chunk_size == chunk_size - 1:
+                frames.append(pd.DataFrame(records))
+                records = []
+        if records:
+            frames.append(pd.DataFrame(records))
+        dfr = pd.concat(frames)
+        dfr.index = labels
         return dfr
 
+    def cursor_to_data_frame_chunked(self, cursor, samples): # pylint: disable=no-self-use
+        dfr = self.iterator2dataframes(cursor, 10000)
+        dfr.index = samples
+        return dfr.transpose()
+ 
     def cursor_to_data_frame_small(self, cursor, samples): # pylint: disable=no-self-use
         """Iterate through a Mongo cursor & put result in pandas DataFrame"""
         c = list(cursor)
@@ -237,20 +266,24 @@ class AbstractAlgorithmWrapper(object): # pylint: disable=too-many-instance-attr
         cursor = self.db[collection].find(query, projection)
         samples = self.db[collection].find(query, {'s':1})[0]['s']
 
-        if parallelize:
-            ids = [x["id"] for x in list(self.db[collection].find(query, {'id':True, '_id':False}))]
-            dfr = Parallel(n_jobs=self.num_cores)(delayed(cursor_to_data_frame_pp)(item) for item in cursor)
-            dfr2 = pd.DataFrame(np.array(dfr).reshape(-1,len(dfr[1])), columns=dfr[1].keys(), index=ids).transpose()
-            dfr2.sort_index(inplace=True)
-            return dfr2
+        # if parallelize:
+        #     ids = [x["id"] for x in list(self.db[collection].find(query, {'id':True, '_id':False}))]
+        #     dfr = Parallel(n_jobs=self.num_cores)(delayed(cursor_to_data_frame_pp)(item) for item in cursor)
+        #     dfr2 = pd.DataFrame(np.array(dfr).reshape(-1,len(dfr[1])), columns=dfr[1].keys(), index=ids).transpose()
+        #     dfr2.sort_index(inplace=True)
+        #     return dfr2
 
         ### another potential options to explore -
         #  df =  pd.DataFrame(list(cursor))
         #  df = [list(item['data'].values()) for item in cursor]
-        # if(cursor.count() > 10000):
-        #     dfr = self.cursor_to_data_frame_big(cursor)
-        # else:
-        dfr = self.cursor_to_data_frame_small(cursor, samples)
+
+        cursor = self.db[collection].find(query, projection)
+        then = datetime.datetime.now()    
+        dfr = self.cursor_to_data_frame_chunked(cursor, samples)
+        diff = datetime.datetime.now() - then
+        print("chunk: ")
+        print( diff)
+
         if(dfr is not None):
             dfr.sort_index(inplace=True)
         return dfr
