@@ -243,7 +243,7 @@ class AbstractAlgorithmWrapper(object): # pylint: disable=too-many-instance-attr
 
     def cursor_to_data_frame_chunked(self, cursor, samples): # pylint: disable=no-self-use
         dfr = self.iterator2dataframes(cursor, 10000)
-        dfr.index = samples
+        dfr.columns = samples
         return dfr.transpose()
  
     def cursor_to_data_frame_small(self, cursor, samples): # pylint: disable=no-self-use
